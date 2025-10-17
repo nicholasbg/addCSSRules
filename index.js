@@ -84,7 +84,7 @@ const addCSSRules = (selectorOrRules, styles, styleSheet) => {
     return [
       styleSheet,
       styleSheet.insertRule(
-        selectorOrRule && isString(styles)
+        isString(styles)
           ? `${selectorOrRule}{${styles}}`
           : selectorOrRule,
         styleSheet.cssRules.length,
