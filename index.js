@@ -1,44 +1,39 @@
 /**
  * Dynamically adds CSS rules to a stylesheet.
  *
- * Usage:
- * - Add a single rule:
- *     addCSSRules('.my-class', { color: 'red', marginTop: '1em' });
- * - Add multiple rules:
- *     addCSSRules({
- *       '.foo': { color: 'blue' },
- *       '.bar': 'background: yellow;'
- *     });
- * - Specify a target stylesheet:
- *     addCSSRules('.baz', { fontWeight: 'bold' }, document.styleSheets[0]);
+ * The function accepts flexible argument forms. Common call shapes:
+ * - addCSSRules(selector, cssText, styleSheet)
+ * - addCSSRules(selector, styleObject, styleSheet)
+ * - addCSSRules(selector, styleSheet)
+ * - addCSSRules({ '.a': { color: 'red' }, ... }, styleSheet)
  *
- * @param {object|string} selectorOrRules
- *   - If an object: Map of selector strings to style objects or CSS strings.
- *   - If a string
- *     - If styles is a string or plain object: CSS selector for the rule.
- *     - Otherwise a full CSS rule.
- * @param {string|object|CSSStyleSheet} [styles]
- *   - If a string: CSS declarations (e.g., "color: red;").
- *   - If an object: JS style object (e.g., { color: 'red', marginTop: '1em' }).
- *   - If a CSSStyleSheet: Used as the target stylesheet.
- * @param {CSSStyleSheet} [styleSheet]
- *   - Optional target stylesheet. If omitted, uses the last stylesheet in the document,
- *     or creates one if none exist.
- * @returns {[CSSStyleSheet, number]|undefined}
- *   - Returns undefined if no rule was added.
- *   - [stylesheet, ruleIndex] for the last added rule.
+ * @param {(Object<string, string|Object<string, string>>|string|null)} [selectorOrRules]
+ *   If an object: map of selector => style object or CSS string.
+ *   If a string: when `styles` is a string or plain object it's treated as a selector;
+ *   otherwise it's treated as a complete CSS rule text.
+ * @param {(string|Object|CSSStyleSheet|null)} [stylesOrStyleSheet]
+ *   If a string: CSS declarations (e.g. "color: red;").
+ *   If an object: JS style object (camelCase keys allowed).
+ *   If a CSSStyleSheet: treated as the target stylesheet (same effect as passing it
+ *   as the final argument).
+ * @param {CSSStyleSheet|null} [styleSheet]
+ *   Optional explicit target stylesheet. If omitted, the last stylesheet in the document
+ *   is used (and created if none exist).
+ * @returns {(undefined|[CSSStyleSheet, number])}
+ *   Returns undefined if no rule was added. Otherwise returns [stylesheet, ruleIndex]
+ *   for the last added rule.
  *
  * Notes:
- * - Style objects are converted from camelCase to kebab-case CSS.
- * - If the selector or rule is invalid, insertRule will throw a DOMException.
- * - If styles is a CSSStyleSheet, it is treated as the target stylesheet.
+ * - insertRule may throw a DOMException for invalid rules.
  */
-const addCSSRules = (selectorOrRules, styles, styleSheet) => {
+function addCSSRules(selectorOrRules, stylesOrStyleSheet, styleSheet) {
   if (!selectorOrRules) return;
+
   const isString = (val) => typeof val === "string";
+  const isStyleSheet = (val) => val instanceof CSSStyleSheet;
   /**
    * @param {string} selectorOrRule
-   * @param {string} [styles]
+   * @param {string|Object<string, string>|null} [styles]
    * @param {CSSStyleSheet} [styleSheet]
    * @returns {[CSSStyleSheet, number]|undefined} The stylesheet and index of the
    * added rule, or undefined if no rule was added.
@@ -52,58 +47,50 @@ const addCSSRules = (selectorOrRules, styles, styleSheet) => {
      * @returns {CSSStyleSheet} The last stylesheet in the document.
      */
     const getStyleSheet = () => {
-      const sheets = document.styleSheets,
-        sheetsLen = sheets.length;
-      if (sheetsLen) return sheets[sheetsLen - 1];
+      const sheets = document.styleSheets;
+      if (sheets.length) return sheets[sheets.length - 1];
       document.head.appendChild(document.createElement("style"));
       return getStyleSheet();
     };
 
     /**
-     * @param {object|string|undefined} obj
-     * @returns {string|undefined}
+     * @param {object|string|undefined|null} styles
+     * @returns {string|undefined|null}
      */
-    const stylesToString = (obj) => {
-      if (!obj || isString(obj)) return obj;
+    const stylesToString = (styles) => {
+      if (!styles || isString(styles)) return styles;
 
-      const toKebabCase = (str) =>
-        str.replace(
-          /([a-z0-9])?([A-Z])/g,
-          (_, pre, nxt) => (pre ? pre + "-" : "") + nxt.toLowerCase(),
-        );
       let stylesString = "";
-      for (const [property, value] of Object.entries(obj)) {
-        stylesString += `${toKebabCase(property)}:${value};`;
-      }
+      for (const [property, value] of Object.entries(styles))
+        stylesString += `${property}:${value};`;
+
       return stylesString;
     };
 
-    styleSheet = styleSheet || getStyleSheet();
+    if (!isStyleSheet(styleSheet)) styleSheet = getStyleSheet();
+
     styles = stylesToString(styles);
 
     return [
       styleSheet,
       styleSheet.insertRule(
-        isString(styles)
-          ? `${selectorOrRule}{${styles}}`
-          : selectorOrRule,
+        isString(styles) ? `${selectorOrRule}{${styles}}` : selectorOrRule,
         styleSheet.cssRules.length,
       ),
     ];
   };
 
-  if (styles instanceof CSSStyleSheet) {
-    styleSheet = styles;
-    styles = undefined;
+  if (isStyleSheet(stylesOrStyleSheet)) {
+    styleSheet = styleSheet ?? stylesOrStyleSheet;
+    stylesOrStyleSheet = null;
   }
 
-  if (isString(selectorOrRules)) {
-    return addRule(selectorOrRules, styles, styleSheet);
-  }
+  if (isString(selectorOrRules))
+    return addRule(selectorOrRules, stylesOrStyleSheet, styleSheet);
 
   let result;
-  for (const entry of Object.entries(selectorOrRules)) {
-    result = addRule(...entry, styleSheet) ?? result;
-  }
+  for (const [selector, styles] of Object.entries(selectorOrRules))
+    result = addRule(selector, styles, styleSheet) ?? result;
+
   return result;
-};
+}
