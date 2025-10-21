@@ -9,7 +9,7 @@
  * - addCSSRules(selector, styleSheet)
  * - addCSSRules({ '.a': { color: 'red' }, ... }, styleSheet)
  *
- * @param {Object<string, string|Object<string, string>>|string|null} [selectorOrRules]
+ * @param {Object<string, string|Object<string, string>>|string} selectorOrRules
  *   If an object: map of selector => style object or CSS string. If a string: when
  *   `styles` is a string or plain object it's treated as a selector; otherwise it's
  *   treated as a complete CSS rule text.
@@ -43,8 +43,6 @@
  *   behavior.
  */
 function addCSSRules(selectorOrRules, stylesOrStyleSheet, styleSheet) {
-  if (!selectorOrRules) return;
-
   const isString = (val) => typeof val === "string";
 
   /**
