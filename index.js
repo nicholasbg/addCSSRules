@@ -36,10 +36,10 @@ const addCSSRules = (() => {
    * - addCSSRules(selector, styleSheet)
    * - addCSSRules({ '.a': { color: 'red' }, ... }, styleSheet)
    *
-   * @param {Object<string, string|Object<string, string>>|string} selectorOrRules
-   *   If an object: map of selector => style object or CSS string. If a string: when
-   *   `styles` is a string or plain object it's treated as a selector; otherwise it's
-   *   treated as a complete CSS rule text.
+   * @param {Object<string, string|Object<string, string>>|string} selectorOrRules If an
+   *   object: map of selector => style object or CSS string. If a string: when `styles`
+   *   is a string or plain object it's treated as a selector; otherwise it's treated as
+   *   a complete CSS rule text.
    * @param {string|Object|CSSStyleSheet|null} [stylesOrStyleSheet] If a string: CSS
    *   declarations (e.g. "color: red;"). If an object: object of css styles with key as
    *   property and value as value. Example:
@@ -48,8 +48,8 @@ const addCSSRules = (() => {
    *       "margin-top": "10px",
    *       transition: "opacity 0.3s ease-in-out"
    *     }
-   *   If a CSSStyleSheet: treated as the target stylesheet (same effect as passing it as
-   *   the final argument).
+   *   If a CSSStyleSheet: treated as the target stylesheet (same effect as passing it
+   *   as the final argument).
    * @param {CSSStyleSheet|null} [styleSheet] Optional explicit target stylesheet. If
    *   omitted, the last stylesheet in the document is used (and created if none exist).
    * @returns {[CSSStyleSheet, number]|undefined} Returns `undefined` if no rule was
@@ -72,7 +72,7 @@ const addCSSRules = (() => {
   return (selectorOrRules, stylesOrStyleSheet, styleSheet) => {
     if (
       typeof stylesOrStyleSheet?.insertRule === "function" &&
-      typeof stylesOrStyleSheet?.cssRules !== "undefined"
+      stylesOrStyleSheet.cssRules
     ) {
       styleSheet = styleSheet || stylesOrStyleSheet;
       stylesOrStyleSheet = undefined;
