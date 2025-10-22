@@ -63,7 +63,7 @@ const addCSSRules = (() => {
   return (selectorOrRules, stylesOrStyleSheet, styleSheet) => {
     if (
       typeof stylesOrStyleSheet?.insertRule === "function" &&
-      stylesOrStyleSheet.cssRules
+      stylesOrStyleSheet.cssRules?.length != null
     ) {
       styleSheet = styleSheet || stylesOrStyleSheet;
       stylesOrStyleSheet = undefined;
