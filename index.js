@@ -1,12 +1,5 @@
 const addCSSRules = (() => {
   /**
-   * [Helper] Checks if a value is a string.
-   * @param {*} [val]
-   * @returns {boolean}
-   */
-  const isString = (val) => typeof val === "string";
-
-  /**
    * [Helper] Converts style object to CSS text and inserts the rule.
    * @param {string} selectorOrRule
    * @param {string|Object<string, string>|null} [styles]
@@ -15,7 +8,7 @@ const addCSSRules = (() => {
    */
   const addRule = (selectorOrRule, styles, sheet) => {
     if (!selectorOrRule) return;
-    if (isString(styles)) {
+    if (typeof styles === "string") {
       selectorOrRule += `{${styles}}`;
     } else if (styles) {
       let cssText = "";
@@ -82,7 +75,7 @@ const addCSSRules = (() => {
       document.head.appendChild(document.createElement("style")).sheet;
 
     let lastIndex;
-    if (isString(selectorOrRules)) {
+    if (typeof selectorOrRules === "string") {
       lastIndex = addRule(selectorOrRules, stylesOrStyleSheet, sheet);
     } else {
       for (const [selector, styles] of Object.entries(selectorOrRules))
