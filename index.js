@@ -15,16 +15,14 @@ const addCSSRules = (() => {
    */
   const addRule = (selectorOrRule, styles, sheet) => {
     if (!selectorOrRule) return;
-
-    if (styles && !isString(styles)) {
+    if (isString(styles)) {
+      selectorOrRule += `{${styles}}`;
+    } else if (styles) {
       let cssText = "";
       for (const [prop, val] of Object.entries(styles))
         cssText += `${prop}:${val};`;
       selectorOrRule += `{${cssText}}`;
-    } else if (isString(styles)) {
-      selectorOrRule += `{${styles}}`;
     }
-
     return sheet.insertRule(selectorOrRule, sheet.cssRules.length);
   };
   /**
