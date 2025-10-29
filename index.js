@@ -4,7 +4,7 @@ const addCSSRules = (() => {
    * @param {string} selectorOrRule
    * @param {string|Object<string, string>|null} [styles]
    * @param {CSSStyleSheet} sheet
-   * @returns {number|undefined} The index of the added rule, or undefined.
+   * @returns {number|undefined} The index of the added rule, or `undefined`.
    */
   const addRule = (selectorOrRule, styles, sheet) => {
     if (!selectorOrRule) return;
