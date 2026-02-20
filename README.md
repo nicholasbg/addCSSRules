@@ -48,6 +48,70 @@ const sheet = addCSSRules(".new-rule", "border: 1px solid black;");
 console.log(sheet); // CSSStyleSheet object
 ```
 
+### Nesting
+
+Object syntax supports nesting for at-rules (`@media`, `@supports`, etc.) and CSS nesting:
+
+```javascript
+// @media query with nested selectors
+addCSSRules({
+  "@media (max-width: 600px)": {
+    ".sidebar": { display: "none" },
+    ".content": { width: "100%" },
+  },
+});
+
+// CSS nesting
+addCSSRules({
+  ".card": {
+    ".title": { "font-weight": "bold" },
+    ".body": { padding: "1rem" },
+  },
+});
+
+// Mixed leaf styles and nested selectors in the same object
+addCSSRules({
+  ".card": {
+    padding: "1rem",
+    "border-radius": "8px",
+    ".title": { "font-size": "1.5rem" },
+  },
+});
+
+// @supports
+addCSSRules({
+  "@supports (display: grid)": {
+    ".layout": { display: "grid", "grid-template-columns": "1fr 1fr" },
+  },
+});
+```
+
+### TypeScript
+
+The package exports `StyleObject` and `SelectorRules` types for typing your rule objects:
+
+```typescript
+import addCSSRules, {
+  type StyleObject,
+  type SelectorRules,
+} from "add-css-rules";
+
+const styles: StyleObject = {
+  color: "red",
+  "font-size": "16px",
+};
+
+const rules: SelectorRules = {
+  ".header": { color: "blue", "font-weight": "bold" },
+  "@media (max-width: 600px)": {
+    ".header": { "font-size": "14px" },
+  },
+};
+
+addCSSRules(".my-class", styles);
+addCSSRules(rules);
+```
+
 ## API
 
 ### `addCSSRules(selectorOrRules, stylesOrStyleSheet?, styleSheet?)`
@@ -79,6 +143,9 @@ npm test
 - If you pass only a single string argument, it is treated as a complete CSS rule (for example: `".x { color: red; }"`).
 - In non-browser environments, pass an explicit stylesheet to avoid accessing `document`.
 - If no stylesheet is provided and `document` is unavailable, the function returns `undefined`.
+- Each call without an explicit stylesheet creates a new `<style>` element. Pass and reuse a stylesheet reference for better control (e.g., to use the stylesheet's `disabled` property for toggling).
+- At-rules like `@media`, `@supports`, `@keyframes`, and `@font-face` all work — either as full rule strings or via nested object syntax.
+- Property names must be valid CSS (kebab-case); no automatic conversion from camelCase is performed.
 
 ## License
 

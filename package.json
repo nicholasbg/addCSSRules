@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "description": "A utility to dynamically add CSS rules to stylesheets",
-  "main": "./dist/add-css-rules.js",
   "types": "./dist/add-css-rules.d.ts",
   "exports": {
     ".": {

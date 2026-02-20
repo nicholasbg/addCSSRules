@@ -2,42 +2,28 @@ export type StyleObject = Record<string, string>;
 export type SelectorRules = {
   [selector: string]: string | StyleObject | SelectorRules;
 };
-export default (function () {
-  const doc = globalThis.document;
-  const CSSStyleSheetInterface = globalThis.CSSStyleSheet;
+export default (() => {
+  const { document: doc, CSSStyleSheet: CSSInterface } = globalThis;
 
   const isString = (str: unknown): str is string => typeof str === "string";
 
-  /**
-   * Checks if a value is an object (excluding null).
-   * @param val - The value to check.
-   * @returns True if the value is an object.
-   */
-  const isNonNullObject = (val: unknown): val is object =>
-    Boolean(val) && typeof val === "object";
+  const isValidObject = (val: unknown): val is object =>
+    !!val && typeof val === "object";
 
-  const isUndefined = (val: unknown): val is undefined =>
-    typeof val === "undefined";
+  const isNumber = (val: unknown): val is number => typeof val === "number";
 
   const isCSSStyleSheet = (obj: unknown): obj is CSSStyleSheet =>
-    isNonNullObject(obj) &&
-    ((!isUndefined(CSSStyleSheetInterface) &&
-      obj instanceof CSSStyleSheetInterface) ||
+    isValidObject(obj) &&
+    ((CSSInterface && obj instanceof CSSInterface) ||
       (typeof (obj as CSSStyleSheet).insertRule === "function" &&
-        typeof (obj as CSSStyleSheet).cssRules?.length === "number"));
-
-  const isStyleObject = (
-    val: StyleObject | SelectorRules | null | undefined | string,
-  ): val is StyleObject =>
-    isNonNullObject(val) &&
-    Object.values(val).every((value) => isString(value));
+        isNumber((obj as CSSStyleSheet).cssRules?.length)));
 
   const createStyleSheet = () =>
-    isUndefined(doc)
-      ? null
-      : (doc.head || doc.documentElement).appendChild(
+    doc
+      ? (doc.head || doc.documentElement).appendChild(
           doc.createElement("style"),
-        ).sheet;
+        ).sheet
+      : null;
 
   const mapRules = (rules: SelectorRules | StyleObject | string): string[] =>
     (isString(rules)
@@ -45,19 +31,27 @@ export default (function () {
       : Object.entries(rules).map(([sel, styles]) => {
           if (isString(styles)) return `${sel}{${styles}}`;
 
-          if (isNonNullObject(styles)) {
-            const entries = Object.entries(styles);
-            if (entries.length)
-              return `${sel}{${
-                isStyleObject(styles)
-                  ? entries
-                      .map(([property, cssValue]) => `${property}:${cssValue}`)
-                      .join(";")
-                  : mapRules(styles).join("")
-              }}`;
-          }
+          const entries = Object.entries(styles);
+          if (!entries.length) return "";
 
-          return "";
+          const parts: string[] = [];
+          let declarations: string[] = [];
+          const flushDeclarationsToParts = () => {
+            if (declarations.length) {
+              parts.push(declarations.join(";"));
+              declarations = [];
+            }
+          };
+
+          for (const [key, value] of entries) {
+            if (isString(value)) declarations.push(`${key}:${value}`);
+            else {
+              flushDeclarationsToParts();
+              parts.push(mapRules({ [key]: value }).join(""));
+            }
+          }
+          flushDeclarationsToParts();
+          return `${sel}{${parts.join(";")}}`;
         })
     ).filter(Boolean);
 
@@ -70,24 +64,23 @@ export default (function () {
    * - addCSSRules(selector, styleSheet)
    * - addCSSRules({ '.a': { color: 'red' }, ... }, styleSheet)
    *
-   * @param {Object<string, string|Object<string, string>>|string} selectorOrRules If an
-   *   object: map of selector => style object or CSS string. If a string: when `styles`
-   *   is a string or plain object it's treated as a selector; otherwise it's treated as
-   *   a complete CSS rule text.
-   * @param {string|Object|CSSStyleSheet|null} [stylesOrStyleSheet] If a string: CSS
-   *   declarations (e.g. "color: red;"). If an object: object of css styles with key as
-   *   property and value as value. Example:
+   * @param selectorOrRules - If an object: map of selector => style object or
+   *   CSS string. If a string: when `styles` is a string or plain object it's
+   *   treated as a selector; otherwise it's treated as a complete CSS rule text.
+   * @param stylesOrStyleSheet - If a string: CSS declarations
+   *   (e.g. "color: red;"). If an object: map of CSS property to value.
+   *   Example:
    *     {
    *       color: "red",
    *       "margin-top": "10px",
    *       transition: "opacity 0.3s ease-in-out"
    *     }
-   *   If a CSSStyleSheet: treated as the target stylesheet (same effect as passing it
-   *   as the final argument).
-   * @param {CSSStyleSheet|null} [styleSheet] Optional explicit target stylesheet. If
-   *   omitted, the last stylesheet in the document is used (and created if none exist).
-   * @returns {CSSStyleSheet|undefined} Returns `undefined` if no rule was added.
-   *   Otherwise returns the stylesheet containing the last added rule.
+   *   If a CSSStyleSheet: treated as the target stylesheet (same effect as
+   *   passing it as the final argument).
+   * @param styleSheet - Optional explicit target stylesheet. If omitted, a new
+   *   stylesheet is created in the document.
+   * @returns The stylesheet containing the added rule(s), or `undefined` if no
+   *   rule was added.
    *
    * Notes:
    * - `insertRule` can throw a DOMException for invalid rules.
@@ -133,7 +126,7 @@ export default (function () {
     for (const rule of mapRules(selectorOrRules))
       lastIndex = sheet.insertRule(rule, sheet.cssRules.length);
 
-    if (!isUndefined(lastIndex)) return sheet;
+    if (isNumber(lastIndex)) return sheet;
   };
   return addCSSRules;
 })();

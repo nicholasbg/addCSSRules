@@ -114,3 +114,111 @@ test("adds more nesting", () => {
     "@media (max-width: 600px){.a{.b{color:blue}}}",
   );
 });
+
+// mixed leaf + nested objects
+
+test("handles mixed leaf styles and nested selectors in the same object", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules(
+    {
+      ".parent": {
+        color: "red",
+        "font-size": "14px",
+        ".child": { display: "block" },
+      },
+    },
+    sheet,
+  );
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(
+    sheet.cssRules[0].cssText,
+    ".parent{color:red;font-size:14px;.child{display:block}}",
+  );
+});
+
+test("handles nested selectors followed by leaf styles", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules(
+    {
+      ".parent": {
+        ".child": { display: "block" },
+        color: "red",
+      },
+    },
+    sheet,
+  );
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(
+    sheet.cssRules[0].cssText,
+    ".parent{.child{display:block};color:red}",
+  );
+});
+
+// edge cases
+
+test("returns undefined for empty rules object", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules({}, sheet);
+  assert.equal(result, undefined);
+});
+
+test("returns undefined for empty style object", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules(".x", {}, sheet);
+  assert.equal(result, undefined);
+});
+
+test("returns undefined for empty string selector", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules("", sheet);
+  assert.equal(result, undefined);
+});
+
+// at-rules
+
+test("adds @supports rule via nested object", () => {
+  const sheet = createMockSheet();
+  const result = addCSSRules(
+    {
+      "@supports (display: grid)": {
+        ".grid": { display: "grid" },
+      },
+    },
+    sheet,
+  );
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(
+    sheet.cssRules[0].cssText,
+    "@supports (display: grid){.grid{display:grid}}",
+  );
+});
+
+test("adds @keyframes as a full rule string", () => {
+  const sheet = createMockSheet();
+  const rule = "@keyframes fade { from { opacity: 0 } to { opacity: 1 } }";
+  const result = addCSSRules(rule, sheet);
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(sheet.cssRules[0].cssText, rule);
+});
+
+// accumulation
+
+test("multiple calls accumulate rules on the same sheet", () => {
+  const sheet = createMockSheet();
+  addCSSRules(".a", "color:red;", sheet);
+  addCSSRules(".b", { display: "block" }, sheet);
+  addCSSRules({ ".c": "font-size:12px;" }, sheet);
+
+  assert.equal(sheet.cssRules.length, 3);
+  assert.equal(sheet.cssRules[0].cssText, ".a{color:red;}");
+  assert.equal(sheet.cssRules[1].cssText, ".b{display:block}");
+  assert.equal(sheet.cssRules[2].cssText, ".c{font-size:12px;}");
+});
