@@ -1,0 +1,51 @@
+{
+  "name": "add-css-rules",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A utility to dynamically add CSS rules to stylesheets",
+  "main": "./dist/add-css-rules.js",
+  "types": "./dist/add-css-rules.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/add-css-rules.d.ts",
+      "import": "./dist/add-css-rules.js",
+      "default": "./dist/add-css-rules.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/**/*.test.mjs",
+    "prepublishOnly": "npm run build",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "css",
+    "stylesheet",
+    "dynamic",
+    "rules",
+    "dom",
+    "browser"
+  ],
+  "author": "Nicholas Andre Burke-Gaffney",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicholasbg/addCSSRules.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nicholasbg/addCSSRules/issues"
+  },
+  "homepage": "https://github.com/nicholasbg/addCSSRules#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
