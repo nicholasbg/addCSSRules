@@ -1,54 +1,63 @@
 export type StyleObject = Record<string, string>;
-export type SelectorRules = Record<string, string | StyleObject>;
+export type SelectorRules = {
+  [selector: string]: string | StyleObject | SelectorRules;
+};
+
+const doc = globalThis.document;
+const CSSStyleSheetInterface = globalThis.CSSStyleSheet;
 
 const isString = (str: unknown): str is string => typeof str === "string";
 
+/**
+ * Checks if a value is an object (excluding null).
+ * @param val - The value to check.
+ * @returns True if the value is an object.
+ */
+const isNonNullObject = (val: unknown): val is object =>
+  Boolean(val) && typeof val === "object";
+
+const isUndefined = (val: unknown): val is undefined =>
+  typeof val === "undefined";
+
 const isCSSStyleSheet = (obj: unknown): obj is CSSStyleSheet =>
-  Boolean(obj) &&
-  ((typeof CSSStyleSheet !== "undefined" && obj instanceof CSSStyleSheet) ||
-    (typeof obj === "object" &&
-      typeof (obj as CSSStyleSheet).insertRule === "function" &&
+  isNonNullObject(obj) &&
+  ((!isUndefined(CSSStyleSheetInterface) &&
+    obj instanceof CSSStyleSheetInterface) ||
+    (typeof (obj as CSSStyleSheet).insertRule === "function" &&
       typeof (obj as CSSStyleSheet).cssRules?.length === "number"));
 
+const isStyleObject = (
+  val: StyleObject | SelectorRules | null | undefined | string,
+): val is StyleObject =>
+  isNonNullObject(val) && Object.values(val).every((value) => isString(value));
+
 const createStyleSheet = () =>
-  typeof document !== "undefined"
-    ? (document.head || document.documentElement).appendChild(
-        document.createElement("style"),
-      ).sheet
-    : null;
+  isUndefined(doc)
+    ? null
+    : (doc.head || doc.documentElement).appendChild(doc.createElement("style"))
+        .sheet;
 
-const addRule = (
-  selectorOrRule: string,
-  styles: string | StyleObject | null | undefined,
-  sheet: CSSStyleSheet,
-): number | undefined => {
-  if (!selectorOrRule) return;
-  if (isString(styles)) selectorOrRule += `{${styles}}`;
-  else if (styles)
-    selectorOrRule += `{${Object.entries(styles)
-      .map(([prop, val]) => `${prop}:${val}`)
-      .join(";")}}`;
+const mapRules = (rules: SelectorRules | StyleObject | string): string[] =>
+  (isString(rules)
+    ? [rules]
+    : Object.entries(rules).map(([sel, styles]) => {
+        if (isString(styles)) return `${sel}{${styles}}`;
 
-  return sheet.insertRule(selectorOrRule, sheet.cssRules.length);
-};
+        if (isNonNullObject(styles)) {
+          const entries = Object.entries(styles);
+          if (entries.length)
+            return `${sel}{${
+              isStyleObject(styles)
+                ? entries
+                    .map(([property, cssValue]) => `${property}:${cssValue}`)
+                    .join(";")
+                : mapRules(styles).join("")
+            }}`;
+        }
 
-type AddCSSRules = {
-  (
-    rules: SelectorRules,
-    styleSheet?: CSSStyleSheet | null,
-    empty?: never,
-  ): CSSStyleSheet | undefined;
-  (
-    selector: string,
-    styleSheet?: CSSStyleSheet | null,
-    empty?: never,
-  ): CSSStyleSheet | undefined;
-  (
-    selector: string,
-    styles: string | StyleObject,
-    styleSheet?: CSSStyleSheet | null,
-  ): CSSStyleSheet | undefined;
-};
+        return "";
+      })
+  ).filter(Boolean);
 
 /**
  * Dynamically adds CSS rules to a stylesheet.
@@ -92,27 +101,37 @@ type AddCSSRules = {
  * - Invalid input (e.g., selector with no styles) will throw as per native API
  *   behavior.
  */
-const addCSSRules: AddCSSRules = (
-  selectorOrRules,
-  stylesOrStyleSheet,
-  styleSheet,
-) => {
-  if (isCSSStyleSheet(stylesOrStyleSheet)) {
-    styleSheet ??= stylesOrStyleSheet;
-    stylesOrStyleSheet = undefined;
-  }
+const addCSSRules: {
+  (
+    rules: SelectorRules,
+    styleSheet?: CSSStyleSheet | null,
+    _?: never,
+  ): CSSStyleSheet | undefined;
+  (
+    selector: string,
+    styles?: string | StyleObject,
+    styleSheet?: CSSStyleSheet | null,
+  ): CSSStyleSheet | undefined;
+} = (selectorOrRules, stylesOrStyleSheet, styleSheet) => {
+  let styles;
+  if (isCSSStyleSheet(stylesOrStyleSheet)) styleSheet ??= stylesOrStyleSheet;
+  else styles = stylesOrStyleSheet;
+
   const sheet = styleSheet || createStyleSheet();
 
-  if (sheet) {
-    let lastIndex;
-    if (isString(selectorOrRules))
-      lastIndex = addRule(selectorOrRules, stylesOrStyleSheet, sheet);
-    else
-      for (const [selector, styles] of Object.entries(selectorOrRules))
-        lastIndex = addRule(selector, styles, sheet) ?? lastIndex;
+  if (!selectorOrRules || !sheet) return;
 
-    if (lastIndex != null) return sheet;
-  }
+  if (styles && isString(selectorOrRules))
+    selectorOrRules = {
+      [selectorOrRules]: styles,
+    };
+
+  let lastIndex;
+
+  for (const rule of mapRules(selectorOrRules))
+    lastIndex = sheet.insertRule(rule, sheet.cssRules.length);
+
+  if (!isUndefined(lastIndex)) return sheet;
 };
 
 export default addCSSRules;

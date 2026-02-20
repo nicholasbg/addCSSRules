@@ -66,3 +66,51 @@ test("treats a single string argument as a complete CSS rule", () => {
   assert.equal(sheet.cssRules.length, 1);
   assert.equal(sheet.cssRules[0].cssText, ".rule { color: green; }");
 });
+
+// queries
+
+test("adds a media query using full rule string", () => {
+  const sheet = createMockSheet();
+  const rule = "@media (max-width:600px){.a{color:red}}";
+  const result = addCSSRules(rule, sheet);
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(sheet.cssRules[0].cssText, rule);
+});
+
+test("adds nested object rules inside @media", () => {
+  const sheet = createMockSheet();
+  const rules = {
+    "@media (max-width: 600px)": {
+      ".a": { color: "red" },
+    },
+  };
+  const result = addCSSRules(rules, sheet);
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(
+    sheet.cssRules[0].cssText,
+    "@media (max-width: 600px){.a{color:red}}",
+  );
+});
+
+test("adds more nesting", () => {
+  const sheet = createMockSheet();
+  const rules = {
+    "@media (max-width: 600px)": {
+      ".a": {
+        ".b": { color: "blue" },
+      },
+    },
+  };
+  const result = addCSSRules(rules, sheet);
+
+  assert.equal(result, sheet);
+  assert.equal(sheet.cssRules.length, 1);
+  assert.equal(
+    sheet.cssRules[0].cssText,
+    "@media (max-width: 600px){.a{.b{color:blue}}}",
+  );
+});
