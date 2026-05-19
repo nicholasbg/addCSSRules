@@ -1,4 +1,6 @@
-export type StyleObject = Record<string, string>;
+import type { PropertiesHyphen } from "csstype";
+
+export type StyleObject = PropertiesHyphen;
 export type SelectorRules = {
   [selector: string]: string | StyleObject | SelectorRules;
 };
