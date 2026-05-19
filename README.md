@@ -88,7 +88,7 @@ addCSSRules({
 
 ### TypeScript
 
-The package exports `StyleObject` and `SelectorRules` types for typing your rule objects:
+The package exports `StyleObject` and `SelectorRules` types for typing your rule objects. `StyleObject` is backed by [`csstype`](https://github.com/frenic/csstype)'s `PropertiesHyphen`, which provides autocompletion and compile-time type safety for hyphen-case CSS property names.
 
 ```typescript
 import addCSSRules, {
@@ -120,9 +120,9 @@ Dynamically adds CSS rules to a stylesheet.
 
 #### Parameters
 
-- `selectorOrRules` (string | object): If a string, it's treated as a CSS selector. If an object, it's a map of selector => styles.
+- `selectorOrRules` (string | object): If a string and `stylesOrStyleSheet` is a string or object, it's treated as a CSS selector. If a string with no styles provided, it's treated as a complete CSS rule. If an object, it's a map of selector => styles.
 - `stylesOrStyleSheet` (string | object | CSSStyleSheet | null): CSS declarations as string, style object, or target stylesheet.
-- `styleSheet` (CSSStyleSheet | null): Optional explicit target stylesheet. If omitted, uses the last stylesheet in the document.
+- `styleSheet` (CSSStyleSheet | null): Optional explicit target stylesheet. If omitted, a new stylesheet is created in the document.
 
 #### Returns
 
