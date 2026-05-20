@@ -1,32 +1,31 @@
 import type { PropertiesHyphen } from "csstype";
 
-export type StyleObject = PropertiesHyphen;
-export type SelectorRules = {
-  [selector: string]: string | StyleObject | SelectorRules;
+type SelectorRules = {
+  [selector: string]: string | PropertiesHyphen | SelectorRules;
 };
+export type { PropertiesHyphen, SelectorRules };
 
-const { document: doc, CSSStyleSheet: CSSInterface } = globalThis;
+const { document, CSSStyleSheet: CSSInterface } = globalThis;
 
 const isString = (str: unknown): str is string => typeof str === "string";
-
-const isValidObject = (val: unknown): val is object =>
-  !!val && typeof val === "object";
 
 const isNumber = (val: unknown): val is number => typeof val === "number";
 
 const isCSSStyleSheet = (obj: unknown): obj is CSSStyleSheet =>
-  isValidObject(obj) &&
+  !!obj &&
+  typeof obj === "object" &&
   ((CSSInterface && obj instanceof CSSInterface) ||
     (typeof (obj as CSSStyleSheet).insertRule === "function" &&
       isNumber((obj as CSSStyleSheet).cssRules?.length)));
 
 const createStyleSheet = () =>
-  doc
-    ? (doc.head || doc.documentElement).appendChild(doc.createElement("style"))
-        .sheet
+  document
+    ? (document.head || document.documentElement).appendChild(
+        document.createElement("style"),
+      ).sheet
     : null;
 
-const mapRules = (rules: SelectorRules | StyleObject | string): string[] =>
+const mapRules = (rules: SelectorRules | PropertiesHyphen | string): string[] =>
   (isString(rules)
     ? [rules]
     : Object.entries(rules).map(([sel, styles]) => {
@@ -62,7 +61,6 @@ const mapRules = (rules: SelectorRules | StyleObject | string): string[] =>
  * The function accepts flexible argument forms. Common call shapes:
  * - addCSSRules(selector, cssText, styleSheet)
  * - addCSSRules(selector, styleObject, styleSheet)
- * - addCSSRules(selector, styleSheet)
  * - addCSSRules({ '.a': { color: 'red' }, ... }, styleSheet)
  *
  * @param selectorOrRules - If an object: map of selector => style object or CSS string.
@@ -98,13 +96,13 @@ const mapRules = (rules: SelectorRules | StyleObject | string): string[] =>
  */
 const addCSSRules: {
   (
-    rules: SelectorRules,
+    rules: SelectorRules | string,
     styleSheet?: CSSStyleSheet | null,
     _?: never,
   ): CSSStyleSheet | undefined;
   (
     selector: string,
-    styles?: string | StyleObject,
+    styles?: string | SelectorRules,
     styleSheet?: CSSStyleSheet | null,
   ): CSSStyleSheet | undefined;
 } = (selectorOrRules, stylesOrStyleSheet, styleSheet) => {

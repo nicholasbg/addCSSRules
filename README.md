@@ -10,6 +10,11 @@ This package is ESM-only.
 npm install add-css-rules
 ```
 
+## Requirements
+
+- Node.js `>=26`
+- For contributors: use the project `.nvmrc` (`nvm use`)
+
 ## Usage
 
 ### Basic Usage
@@ -88,15 +93,15 @@ addCSSRules({
 
 ### TypeScript
 
-The package exports `StyleObject` and `SelectorRules` types for typing your rule objects. `StyleObject` is backed by [`csstype`](https://github.com/frenic/csstype)'s `PropertiesHyphen`, which provides autocompletion and compile-time type safety for hyphen-case CSS property names.
+The package exports `PropertiesHyphen` (from [`csstype`](https://github.com/frenic/csstype)) and `SelectorRules` types for typing your rule objects. `PropertiesHyphen` provides autocompletion and compile-time type safety for hyphen-case CSS property names.
 
 ```typescript
 import addCSSRules, {
-  type StyleObject,
+  type PropertiesHyphen,
   type SelectorRules,
 } from "add-css-rules";
 
-const styles: StyleObject = {
+const styles: PropertiesHyphen = {
   color: "red",
   "font-size": "16px",
 };
@@ -118,11 +123,23 @@ addCSSRules(rules);
 
 Dynamically adds CSS rules to a stylesheet.
 
+#### Call Forms
+
+- `addCSSRules(selector, cssText, styleSheet?)`
+- `addCSSRules(selector, styleObject, styleSheet?)`
+- `addCSSRules(rulesObject, styleSheet?)`
+- `addCSSRules(fullRuleString, styleSheet?)`
+
 #### Parameters
 
-- `selectorOrRules` (string | object): If a string and `stylesOrStyleSheet` is a string or object, it's treated as a CSS selector. If a string with no styles provided, it's treated as a complete CSS rule. If an object, it's a map of selector => styles.
-- `stylesOrStyleSheet` (string | object | CSSStyleSheet | null): CSS declarations as string, style object, or target stylesheet.
-- `styleSheet` (CSSStyleSheet | null): Optional explicit target stylesheet. If omitted, a new stylesheet is created in the document.
+- `selectorOrRules` (`string | SelectorRules`):
+  - If `stylesOrStyleSheet` is a declaration string or style object, this is treated as a CSS selector (for example `".card"`).
+  - If no declaration input is provided, this is treated as a full CSS rule string (for example `".card{color:red}"` or `"@media (...) {...}"`).
+  - If an object, keys are selectors/at-rules and values are declaration strings, `PropertiesHyphen` objects, or nested rule objects.
+- `stylesOrStyleSheet` (`string | PropertiesHyphen | CSSStyleSheet | null`):
+  - Declaration string (for example `"color:red;"`) or style object when using selector mode.
+  - Target stylesheet when using object mode or full-rule-string mode.
+- `styleSheet` (`CSSStyleSheet | null`): Optional explicit target stylesheet. If omitted, a new stylesheet is created in the document.
 
 #### Returns
 
@@ -135,7 +152,15 @@ Works in all modern browsers that support `CSSStyleSheet.insertRule()`.
 ## Development
 
 ```bash
+npm install
+npm run typecheck
 npm test
+```
+
+If browser binaries are missing (for example in CI), install Chromium for Playwright:
+
+```bash
+npx playwright install chromium
 ```
 
 ## Notes
@@ -144,7 +169,8 @@ npm test
 - In non-browser environments, pass an explicit stylesheet to avoid accessing `document`.
 - If no stylesheet is provided and `document` is unavailable, the function returns `undefined`.
 - Each call without an explicit stylesheet creates a new `<style>` element. Pass and reuse a stylesheet reference for better control (e.g., to use the stylesheet's `disabled` property for toggling).
-- At-rules like `@media`, `@supports`, `@keyframes`, and `@font-face` all work — either as full rule strings or via nested object syntax.
+- At-rules like `@media` and `@supports` are supported via nested object syntax.
+- Other at-rules (for example `@keyframes` and `@font-face`) can be passed as full rule strings.
 - Property names must be valid CSS (kebab-case); no automatic conversion from camelCase is performed.
 
 ## License
