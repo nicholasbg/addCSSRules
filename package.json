@@ -37,7 +37,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nicholasbg/addCSSRules.git"
+    "url": "git+https://github.com/nicholasbg/addCSSRules.git"
   },
   "bugs": {
     "url": "https://github.com/nicholasbg/addCSSRules/issues"
