@@ -1,7 +1,7 @@
 import type { PropertiesHyphen } from "csstype";
-
+type SelectorRulesValue = string | PropertiesHyphen | SelectorRules;
 type SelectorRules = {
-  [selector: string]: string | PropertiesHyphen | SelectorRules;
+  [selector: string]: SelectorRulesValue;
 };
 export type { PropertiesHyphen, SelectorRules };
 
@@ -25,35 +25,39 @@ const createStyleSheet = () =>
       ).sheet
     : null;
 
-const mapRules = (rules: SelectorRules | PropertiesHyphen | string): string[] =>
-  (isString(rules)
-    ? [rules]
-    : Object.entries(rules).map(([sel, styles]) => {
-        if (isString(styles)) return `${sel}{${styles}}`;
+const mapRules = (rules: SelectorRulesValue): string[] => {
+  if (isString(rules)) return [rules];
+  const stringRules: string[] = [];
+  for (const rule of Object.entries(rules)) {
+    const [sel, styles]: [string, SelectorRulesValue] = rule;
+    if (isString(styles)) {
+      stringRules.push(`${sel}{${styles}}`);
+      continue;
+    }
 
-        const entries = Object.entries(styles);
-        if (!entries.length) return "";
+    const entries: [string, SelectorRulesValue][] = Object.entries(styles);
+    if (!entries.length) continue;
 
-        const parts: string[] = [];
-        let declarations: string[] = [];
-        const flushDeclarationsToParts = () => {
-          if (declarations.length) {
-            parts.push(declarations.join(";"));
-            declarations = [];
-          }
-        };
-
-        for (const [key, value] of entries) {
-          if (isString(value)) declarations.push(`${key}:${value}`);
-          else {
-            flushDeclarationsToParts();
-            parts.push(mapRules({ [key]: value }).join(""));
-          }
-        }
-        flushDeclarationsToParts();
-        return `${sel}{${parts.join(";")}}`;
-      })
-  ).filter(Boolean);
+    const parts: string[] = [];
+    let declarations: string[] = [];
+    const flushDeclarations = () => {
+      if (declarations.length) {
+        parts.push(declarations.join(";"));
+        declarations = [];
+      }
+    };
+    for (const [key, value] of entries) {
+      if (isString(value)) declarations.push(`${key}:${value}`);
+      else {
+        flushDeclarations();
+        parts.push(mapRules({ [key]: value }).join(""));
+      }
+    }
+    flushDeclarations();
+    stringRules.push(`${sel}{${parts.join(";")}}`);
+  }
+  return stringRules;
+};
 
 /**
  * Dynamically adds CSS rules to a stylesheet.
@@ -106,25 +110,24 @@ const addCSSRules: {
     styleSheet?: CSSStyleSheet | null,
   ): CSSStyleSheet | undefined;
 } = (selectorOrRules, stylesOrStyleSheet, styleSheet) => {
-  let styles;
+  if (!selectorOrRules) return;
+
   if (isCSSStyleSheet(stylesOrStyleSheet)) styleSheet ??= stylesOrStyleSheet;
-  else styles = stylesOrStyleSheet;
-
-  const sheet = styleSheet || createStyleSheet();
-
-  if (!selectorOrRules || !sheet) return;
-
-  if (styles && isString(selectorOrRules))
+  else if (stylesOrStyleSheet && isString(selectorOrRules))
     selectorOrRules = {
-      [selectorOrRules]: styles,
+      [selectorOrRules]: stylesOrStyleSheet,
     };
 
-  let lastIndex;
+  const rules = mapRules(selectorOrRules);
+  if (!rules.length) return;
 
-  for (const rule of mapRules(selectorOrRules))
-    lastIndex = sheet.insertRule(rule, sheet.cssRules.length);
+  styleSheet ??= createStyleSheet();
+  if (!styleSheet) return;
 
-  if (isNumber(lastIndex)) return sheet;
+  for (const rule of rules)
+    styleSheet.insertRule(rule, styleSheet.cssRules.length);
+
+  return styleSheet;
 };
 
 export default addCSSRules;
