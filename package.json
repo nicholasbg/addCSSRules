@@ -1,6 +1,6 @@
 {
   "name": "add-css-rules",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "A utility to dynamically add CSS rules to stylesheets",
   "types": "./dist/add-css-rules.d.ts",
